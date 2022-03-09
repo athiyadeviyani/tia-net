@@ -275,7 +275,79 @@ class MaxPool(Transform):
 
         return dx
 
+
+class MaxPoolNaive(Transform):
+    """
+    Implement this class - MaxPool layer
+    """
+    def __init__(self, filter_shape, stride):
+        """
+        filter_shape is (filter_height, filter_width)
+        stride is a scalar
+        """
+        self.filter_shape = filter_shape
+        self.filter_height, self.filter_width = filter_shape
+        self.stride = stride
+        self.max_indices = None
         
+
+    def forward(self, inputs):
+        self.inputs = inputs # save the inputs
+        N, C, H, W = inputs.shape 
+        # self.max_indices = np.zeros(inputs.shape)
+        
+        # print(self.filter_shape)
+        output_height = int((H - self.filter_height)/self.stride) + 1
+        output_width = int((W - self.filter_width)/self.stride) + 1
+        # print(output_height, output_width)
+
+        forward_out = np.zeros((N, C, output_height, output_width))
+
+        for i in range(output_height):
+            for j in range(output_width):
+                pool_height_start = i*self.stride
+                pool_height_end = i*self.stride + self.filter_height
+                pool_width_start = j*self.stride
+                pool_width_end = j*self.stride + self.filter_width
+
+                inp = inputs[:, :, pool_height_start:pool_height_end, pool_width_start:pool_width_end].reshape(N, C, -1)
+                forward_out[:, :, i, j] = np.max(inp, axis=2)
+
+        self.forward_out = forward_out
+
+        return forward_out
+
+    def backward(self, dloss):
+        """
+        dloss is the gradients wrt the output of forward()
+        """
+        N, C, H, W = self.inputs.shape
+        backward_out = np.zeros(self.inputs.shape)
+        h_strides = int(H / self.stride)
+        w_strides = int(W / self.stride)
+
+        for n in range(N):
+            for c in range(C):
+                for i in range(h_strides):
+                    for j in range(w_strides):
+
+                        pool_height_start = i*self.stride
+                        pool_height_end = i*self.stride + self.filter_height
+                        pool_width_start = j*self.stride
+                        pool_width_end = j*self.stride + self.filter_width
+                        inp = self.inputs[:, :, pool_height_start:pool_height_end, pool_width_start:pool_width_end]
+
+                        inp = inp.reshape(N, C, -1)
+                        max_index = np.argmax(inp, axis=2)
+
+                        w_idx = int(((max_index % self.filter_width) + pool_width_start)[n,c])
+                        h_idx = int(((max_index / self.filter_width) + pool_height_start)[n,c])
+
+                        backward_out[n, c, h_idx, w_idx] = dloss[n, c, i, j]
+
+        return backward_out.reshape(N, C, H, W)
+    
+    
 class LinearLayer(Transform):
     """
     Implement this class - Linear layer
