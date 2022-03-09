@@ -1,5 +1,5 @@
 # tia-net
-Tia's implementation of Neural Network Architectures from scratch
+Tia's implementation of Neural Network Architectures from scratch (Python and NumPy)
 
 ## Current available implementations
 - [Multilayer Perceptron](https://github.com/athiyadeviyani/tia-net/blob/main/mlp.py)
